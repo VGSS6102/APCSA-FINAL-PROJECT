@@ -105,8 +105,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     private int boardWidth = columnCount * tileSize;
     private int boardHeight = rowCount * tileSize;
 
+    // define wall images
+    // blue, purple, green, white
+    private Image[] wallImages;
+    private Image wallImageB;
+    private Image wallImageP;
+    private Image wallImageG;
+    private Image wallImageW;
+    
+
     // define ghost images
-    private Image wallImage;
     private Image blueGhostImage;
     private Image orangeGhostImage;
     private Image pinkGhostImage;
@@ -130,10 +138,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     Random random = new Random(); 
     int score = 0; // score of current match
     int highScore = getHighScore(); // high score of all time
-    int lives = 1; // starting lives
+    int lives = 3; // starting lives
     boolean gameOver = false; // status flag determines if game is over
-    boolean blackOut = false; // status flag for lightswitch (WIP)
+    boolean blackOut = false; // status flag for lightswitch off (WIP)
     int room = 0; // starting room / current room (WIP)
+    Image currImage;
 
     /* DEFINE MAP LAYOUTS FOR EACH ROOM
         X = wall, O = skip, P = pac man, ' ' = food
@@ -165,12 +174,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         {
             "XXXXXXXXXXXXXXXXXXX", // LEVEL 2
             "X        X        X",
-            "X XX XXX X XXX XX X",
+            "X XX X X X XXX XX X",
             "X                 X",
-            "X XX X XXXXX X XX X",
+            "X XX X   XXX X XX X",
             "X    X       X    X",
-            "XXXX XXXX XXXX XXXX",
-            "OOOX X       X XOOO",
+            "X  X XXXX   XX X  X",
+            "XOOX X       X XOOX",
             "XXXX X XXrXX X XXXX",
             "O      XbpoX      O",
             "XXXX X XXXXX X XXXX",
@@ -179,10 +188,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             "X        X        X",
             "X XX XXX X XXX XX X",
             "X  X     P     X  X",
-            "XX X X XXXXX X X XX",
+            "XX X X X   X X X XX",
             "X    X   X   X    X",
-            "X XXXXXX X XXXXXX X",
-            "X                 X",
+            "X XXX XX X X  XXX X",
+            "X        X        X",
             "XXXXXXXXXXXXXXXXXXX" 
         },
     };
@@ -197,7 +206,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         setFocusable(true);
 
         // load images of each element on the screen
-        wallImage = new ImageIcon(getClass().getResource("./wall.png")).getImage();
+        wallImageB = new ImageIcon(getClass().getResource("./wallB.png")).getImage();
+        // wallImageP = new ImageIcon(getClass().getResource("./wallP.png")).getImage();
+        // wallImageG= new ImageIcon(getClass().getResource("./wallG.png")).getImage();
+        // wallImageW = new ImageIcon(getClass().getResource("./wallW.png")).getImage();
+
+
         blueGhostImage = new ImageIcon(getClass().getResource("./blueGhost.png")).getImage();
         orangeGhostImage = new ImageIcon(getClass().getResource("./orangeGhost.png")).getImage();
         pinkGhostImage = new ImageIcon(getClass().getResource("./pinkGhost.png")).getImage();
@@ -246,7 +260,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
 
                 // For each character place corresponding object
                 if (tileMapChar == 'X') { //place wall 
-                    Block wall = new Block(wallImage, x, y, tileSize, tileSize);
+                    Block wall = new Block(currImage, x, y, tileSize, tileSize);
                     walls.add(wall);
                 }
                 else if (tileMapChar == 'b') { //create blue ghost
@@ -348,14 +362,14 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
 
         // check ghost collisions with player and their moves
         for (Block ghost : ghosts) { 
-            if (collision(ghost, pacman)){
-                lives -= 1;
-                if (lives < 1) {
-                    gameOver = true;
-                    return;
-                }
-                resetPositions();
-            }
+            // if (collision(ghost, pacman)){
+            //     lives -= 1;
+            //     if (lives < 1) {
+            //         gameOver = true;
+            //         return;
+            //     }
+            //     resetPositions();
+            // }
             if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D'){
                 ghost.updateDirection(directions[random.nextInt(2)]);
             }
@@ -370,7 +384,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 }
             }
         }
-
         // check food colisions with player
         Block foodEaten = null;
         for (Block food : foods) {
@@ -381,10 +394,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         }
         foods.remove(foodEaten);
 
-        // reset map when there's no food on the map
+        // Switch rooms if there's no food left in previous one
         if (foods.isEmpty()) {
-            loadMap();
-            resetPositions();
+            if ((room+1) <= tileMap.length-1){
+                room++;
+                loadMap();
+                resetPositions();
+            }
+            else { // reset back when reached last room
+                room = 0;
+                loadMap();
+                resetPositions();
+            }
+            
         }
 
     }
@@ -510,7 +532,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 resetPositions();
                 lives = 3;
                 score = 0;
+                room = 0;
                 highScore = getHighScore();
+                blackOut = false;
                 gameOver = false;
                 gameLoop.start();
             }
