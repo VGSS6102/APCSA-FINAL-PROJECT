@@ -1,5 +1,8 @@
 import javax.swing.JFrame;
 
+/**
+ * Creates a window and starts a game
+ */
 public class App {
     public static void main(String[] args) throws Exception {
 

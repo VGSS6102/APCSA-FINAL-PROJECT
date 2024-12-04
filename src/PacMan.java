@@ -1,29 +1,35 @@
 import java.awt.*;
 import java.awt.event.*;
-import java.io.Serializable;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Random;
-import java.util.TooManyListenersException;
-
+import java.util.Scanner;
 import javax.swing.*;
-import javax.swing.plaf.UIResource;
 
-public class PacMan extends JPanel implements ActionListener, KeyListener, UIResource{
+/**
+ * Game class
+ */
+public class PacMan extends JPanel implements ActionListener, KeyListener{
 
-
+    /**
+     * Class that defines each element on the screen
+     */
     class Block {
+        // Sprite parameters 
         int x;
         int y;
         int width;
         int height;
         Image image;
 
+        // Movement parameters
         int startX;
         int startY;
         char direction = 'U'; // U D L R 
         int velocityX = 0;
         int velocityY = 0;
-
         int speed = tileSize/4;
 
         Block(Image image, int x, int y , int width, int height) {
@@ -36,13 +42,20 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
             this.startY = y;
         }
 
+        /**
+         * Update direction of movement of the sprite
+         * @param direction letter representing direction 
+         */
         void updateDirection(char direction) {
-            char prevDirection = this.direction;
-            this.direction = direction;
+            char prevDirection = this.direction; //saves previous direction
+            this.direction = direction; //sets new direction of movement of the sprite
             updateVelocity();
             this.x += this.velocityX;
             this.y += this.velocityY;
+
+            // Check every wall element for colision with this sprite
             for(Block wall : walls) { 
+                // Stop moving if this sprite collides with wall element
                 if (collision(this, wall)){
                     this.x -= this.velocityX;
                     this.y -= this.velocityY;
@@ -52,6 +65,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
             }
         }
         
+
+        /**
+         * Update movement direction based on direction variable
+         */
         void updateVelocity() {
             if (this.direction == 'U') {
                 this.velocityX = 0;
@@ -72,81 +89,114 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
             
         }
 
+        /** 
+         * Places this sprite into it's starting position
+         */
         void reset() {
             this.x = this.startX;
             this.y = this.startY;
         }
     }
 
-
+    // define map parameters
     private int rowCount = 21;
     private int columnCount = 19;
     private int tileSize = 32;
     private int boardWidth = columnCount * tileSize;
     private int boardHeight = rowCount * tileSize;
 
+    // define ghost images
     private Image wallImage;
     private Image blueGhostImage;
     private Image orangeGhostImage;
     private Image pinkGhostImage;
     private Image redGhostImage;
 
+    // define player sprite directional images 
     private Image pacmanUpImage;
     private Image pacmanDownImage;
     private Image pacmanLeftImage;
     private Image pacmanRightImage;
 
     
-
-    HashSet<Block> walls;
+    // declare sets of all sprites 
+    HashSet<Block> walls; 
     HashSet<Block> foods;
     HashSet<Block> ghosts;
     Block pacman;
 
-    Timer gameLoop;
-    char[] directions = {'U', 'D', 'L', 'R'};
-    Random random = new Random();
-    int score = 0;
-    int lives = 1;
-    boolean gameOver = false;
-    boolean blackOut = false; 
+    Timer gameLoop; // declare a game loop that will update the game
+    char[] directions = {'U', 'D', 'L', 'R'}; // list of possible directions for ghosts
+    Random random = new Random(); 
+    int score = 0; // score of current match
+    int highScore = getHighScore(); // high score of all time
+    int lives = 1; // starting lives
+    boolean gameOver = false; // status flag determines if game is over
+    boolean blackOut = false; // status flag for lightswitch (WIP)
+    int room = 0; // starting room / current room (WIP)
 
-
-    //X = wall, O = skip, P = pac man, ' ' = food
-    //Ghosts: b = blue, o = orange, p = pink, r = red
-    private String[] tileMap = {
-        "XXXXXXXXXXXXXXXXXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X                 X",
-        "X XX X XXXXX X XX X",
-        "X    X       X    X",
-        "XXXX XXXX XXXX XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXrXX X XXXX",
-        "O      XbpoX      O",
-        "XXXX X XXXXX X XXXX",
-        "OOOX X       X XOOO",
-        "XXXX X XXXXX X XXXX",
-        "X        X        X",
-        "X XX XXX X XXX XX X",
-        "X  X     P     X  X",
-        "XX X X XXXXX X X XX",
-        "X    X   X   X    X",
-        "X XXXXXX X XXXXXX X",
-        "X                 X",
-        "XXXXXXXXXXXXXXXXXXX" 
+    /* DEFINE MAP LAYOUTS FOR EACH ROOM
+        X = wall, O = skip, P = pac man, ' ' = food
+        Ghosts: b = blue, o = orange, p = pink, r = red
+    */
+    private String[][] tileMap = {{
+            "XXXXXXXXXXXXXXXXXXX", // LEVEL 1
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X                 X",
+            "X XX X XXXXX X XX X",
+            "X    X       X    X",
+            "XXXX XXXX XXXX XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXrXX X XXXX",
+            "O      XbpoX      O",
+            "XXXX X XXXXX X XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXXXX X XXXX",
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X  X     P     X  X",
+            "XX X X XXXXX X X XX",
+            "X    X   X   X    X",
+            "X XXXXXX X XXXXXX X",
+            "X                 X",
+            "XXXXXXXXXXXXXXXXXXX" 
+        },
+        {
+            "XXXXXXXXXXXXXXXXXXX", // LEVEL 2
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X                 X",
+            "X XX X XXXXX X XX X",
+            "X    X       X    X",
+            "XXXX XXXX XXXX XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXrXX X XXXX",
+            "O      XbpoX      O",
+            "XXXX X XXXXX X XXXX",
+            "OOOX X       X XOOO",
+            "XXXX X XXXXX X XXXX",
+            "X        X        X",
+            "X XX XXX X XXX XX X",
+            "X  X     P     X  X",
+            "XX X X XXXXX X X XX",
+            "X    X   X   X    X",
+            "X XXXXXX X XXXXXX X",
+            "X                 X",
+            "XXXXXXXXXXXXXXXXXXX" 
+        },
     };
 
 
 
-
     PacMan() {
+        // setup a game window
         setPreferredSize(new Dimension(boardWidth, boardHeight));
         setBackground(Color.BLACK);
         addKeyListener(this);
         setFocusable(true);
 
+        // load images of each element on the screen
         wallImage = new ImageIcon(getClass().getResource("./wall.png")).getImage();
         blueGhostImage = new ImageIcon(getClass().getResource("./blueGhost.png")).getImage();
         orangeGhostImage = new ImageIcon(getClass().getResource("./orangeGhost.png")).getImage();
@@ -158,24 +208,33 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
         pacmanLeftImage = new ImageIcon(getClass().getResource("./pacmanLeft.png")).getImage();
         pacmanRightImage = new ImageIcon(getClass().getResource("./pacmanRight.png")).getImage();
 
+        // Draw a map
         loadMap();
         for (Block ghost : ghosts) {
+            // set random direction of movement for ghosts from the start
             char newDirection = directions[random.nextInt(4)];
             ghost.updateDirection(newDirection);
         }
+
+        // Setup a game loop with update delay of 50 miliseconds
         gameLoop = new Timer(50, this); //20fps
         gameLoop.start();
     }
 
+    /**
+     * Create a gaming area following a map of the game
+     */
     public void loadMap() {
+        // Initialize sets of elements to create
         walls = new HashSet<Block>();
         foods = new HashSet<Block>();
         ghosts = new HashSet<Block>();
 
+        // Go through each 
         for (int r = 0; r < rowCount; r++) {
             for (int c  = 0; c < columnCount; c++) {
                 //read rows
-                String row = tileMap[r];
+                String row = tileMap[room][r];
 
                 //read characters
                 char tileMapChar = row.charAt(c);
@@ -184,6 +243,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
                 int x = c*tileSize;
                 int y = r*tileSize;
 
+
+                // For each character place corresponding object
                 if (tileMapChar == 'X') { //place wall 
                     Block wall = new Block(wallImage, x, y, tileSize, tileSize);
                     walls.add(wall);
@@ -216,47 +277,66 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
         }
     }
 
+
+    /**
+     * Method responsible for updating the screen 
+     * @param g Graphics class object
+     */
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
     }
 
+    /**
+     * Draw gameboard
+     * @param g Graphics class object
+     */
     public void draw(Graphics g) {
-        g.setFont(new Font("Arial", Font.PLAIN, 18));
+
+        // If game is over display a game over screen
         if (gameOver) {
-            // g.drawString("Game Over: " + String.valueOf(score), tileSize/2, tileSize/2);
-            displayGameOver(g, score);
+            displayGameOver(g, score, room);
 
         }
+        // if game is not over draw each element on their own position
         else {
-        
+            
+            // draw player
             g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
 
+            // draw food
             g.setColor(Color.WHITE);
             for (Block food : foods) {
                 g.fillRect(food.x, food.y, food.width, food.height);
             }
 
+            // draw ghosts
             for (Block ghost : ghosts) {
                 g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
             }
 
+            // draw walls
             for (Block wall : walls) {
                 g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
             }
 
-            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score), tileSize/2, tileSize/2);
+            // draw stats: number of lives, score, and highscore at the top of the screen 
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score) + " H: " + String.valueOf(highScore), tileSize/2, tileSize/2);
             
         }
         
     }
 
-
+    /**
+     * Method to caclculate moves for all objects and their collisions
+     */
     public void move() { 
+        // Proceed moving player along direction they were moving
         pacman.x += pacman.velocityX;
         pacman.y += pacman.velocityY;
 
-        // check wall collisions
+        // check wall collisions with player and hold back of it happens
         for (Block wall : walls) { 
             if (collision(pacman, wall)) {
                 pacman.x -= pacman.velocityX;
@@ -266,7 +346,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
         }
 
 
-        // check ghost collisions
+        // check ghost collisions with player and their moves
         for (Block ghost : ghosts) { 
             if (collision(ghost, pacman)){
                 lives -= 1;
@@ -291,7 +371,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
             }
         }
 
-        // check food colisions
+        // check food colisions with player
         Block foodEaten = null;
         for (Block food : foods) {
             if (collision(pacman, food)){
@@ -301,6 +381,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
         }
         foods.remove(foodEaten);
 
+        // reset map when there's no food on the map
         if (foods.isEmpty()) {
             loadMap();
             resetPositions();
@@ -308,18 +389,28 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
 
     }
 
+    /**
+     * Check if two objects are colliding with each other
+     * @param a Block class object
+     * @param b Block class object
+     * @return true or false depending on collision
+     */
     public boolean collision(Block a, Block b) {
-        return  a.x < b.x + b.width &&
-                a.x + a.width > b.x &&
-                a.y < b.y + b.height &&
-                a.y + a.height > b.y;
+        return  a.x < b.x + b.width && // check if object b at x pos of object a
+                a.x + a.width > b.x && // check if object a at x pos of object b
+                a.y < b.y + b.height && // check if object b at y pos of object a
+                a.y + a.height > b.y; // check if object a at y pos of object b
     }
 
+    /**
+     * Reset positions of all moving object like player and ghosts
+     */
     public void resetPositions() {
         pacman.reset();
         pacman.velocityX = 0;
         pacman.velocityY = 0;
 
+        // reset each existing ghost
         for (Block ghost : ghosts) {
             ghost.reset();
             char newDirection = directions[random.nextInt(4)];
@@ -327,13 +418,69 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
         }
     }
 
-    public void displayGameOver(Graphics g, int score) {
-        g.setFont(new Font("Arial", Font.BOLD, 40));
-        g.setColor(Color.RED);
-        g.drawString("Game Over",boardWidth/3, boardHeight/2-25);
-        g.drawString(String.valueOf(score), (int) (boardWidth/2), boardHeight/2+25);
+
+    /**
+     * Opens a highscore text file and returns it's value
+     * @return highScore
+     */
+    public int getHighScore(){
+
+        int highScore = score;
+        
+        try {
+            // FileReader reader = new FileReader("highscore.txt");
+            // BufferedReader bufferedReader = new BufferedReader(reader);
+            File myFile = new File("highscore.txt");
+            Scanner myReader = new Scanner(myFile);
+ 
+            String line = myReader.nextLine();
+            System.out.println(line);
+            highScore = Integer.parseInt(line);      
+            
+            myReader.close();
+
+            
+        } catch (IOException e) {
+        }
+
+        return highScore;
     }
 
+    /**
+     * Write current score into highscore text file if score is higher than highscore
+     * @param score current score
+     */
+    public void saveHighScore(int score){
+        if (score > highScore){
+            try {
+                FileWriter writer = new FileWriter("highscore.txt", false);
+                writer.write(String.valueOf(score));
+                writer.close();
+            } catch (IOException e) {
+            }
+        }
+    }
+
+    /**
+     * Shows a blank GameOver screen with score, highscore, and room
+     * @param g Graphics class objec
+     * @param score int variable for score
+     * @param room index number of the room
+     */
+    public void displayGameOver(Graphics g, int score, int room) {
+        gameLoop.stop();
+        g.setFont(new Font("Arial", Font.BOLD, 40));
+        g.setColor(Color.RED);
+        g.drawString("Game Over",boardWidth/3, boardHeight/2-50);
+
+        saveHighScore(score);
+        g.drawString("Score: " + String.valueOf(score) + " High: " + String.valueOf(getHighScore()), boardWidth/5, boardHeight/2+25);
+    }
+
+    /**
+     * Listens for any keypress 
+     * and updates the screen until game is over
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         move();
@@ -349,6 +496,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
     @Override
     public void keyPressed(KeyEvent e) {}
 
+
+    /**
+     * Listens for keypresses and
+     * Updates directions of player
+     */
     @Override
     public void keyReleased(KeyEvent e) {
         
@@ -358,6 +510,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener, UIRes
                 resetPositions();
                 lives = 3;
                 score = 0;
+                highScore = getHighScore();
                 gameOver = false;
                 gameLoop.start();
             }
