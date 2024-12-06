@@ -126,11 +126,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     private Image pacmanLeftImage;
     private Image pacmanRightImage;
 
+    private Image healFoodImage;
+
     
     // declare sets of all sprites 
     HashSet<Block> walls; 
     HashSet<Block> foods;
     HashSet<Block> ghosts;
+    HashSet<Block> heals;
+    Block portalOne;
+    Block portalTwo;
     Block pacman;
 
     Timer gameLoop; // declare a game loop that will update the game
@@ -138,18 +143,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     Random random = new Random(); 
     int score = 0; // score of current match
     int highScore = getHighScore(); // high score of all time
-    int lives = 3; // starting lives
+    int lives = 1; // starting lives
     boolean gameOver = false; // status flag determines if game is over
     boolean blackOut = false; // status flag for lightswitch off (WIP)
     int room = 0; // starting room / current room (WIP)
 
     /* DEFINE MAP LAYOUTS FOR EACH ROOM
-        X = wall, O = skip, P = pac man, ' ' = food
-        Ghosts: b = blue, o = orange, p = pink, r = red
+        X = wall, O = skip, P = pac man, ' ' = food, H = heal item
+        Ghosts: b = blue, o = orange, p = pink, r = red,
+        Portals: @ = portal 1, # portal 2
     */
     private String[][] tileMap = {{
             "XXXXXXXXXXXXXXXXXXX", // LEVEL 1
-            "X        X        X",
+            "X        X    H   X",
             "X XX XXX X XXX XX X",
             "X                 X",
             "X XX X XXXXX X XX X",
@@ -157,86 +163,86 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             "XXXX XXXX XXXX XXXX",
             "OOOX X       X XOOO",
             "XXXX X XXrXX X XXXX",
-            "O      XbpoX      O",
+            "@      XbpoX      #",
             "XXXX X XXXXX X XXXX",
-            "OOOX X       X XOOO",
+            "OOOX X   H   X XOOO",
             "XXXX X XXXXX X XXXX",
-            "X        X        X",
+            "X H      X        X",
             "X XX XXX X XXX XX X",
             "X  X     P     X  X",
             "XX X X XXXXX X X XX",
-            "X    X   X   X    X",
+            "X    X   X   X H  X",
             "X XXXXXX X XXXXXX X",
             "X                 X",
             "XXXXXXXXXXXXXXXXXXX" 
         },
         {
             "XXXXXXXXXXXXXXXXXXX", // LEVEL 2
-            "X        X        X",
-            "X XX X X X XXX XX X",
+            "Xr               pX",
+            "X   XX       XX   X",
+            "X  X  X     X  X  X",
+            "X  X         XX   X",
+            "X  X  X     X XX  X",
+            "X   XX       XX   X",
             "X                 X",
-            "X XX X   XXX X XX X",
-            "X    X       X    X",
-            "X  X XXXX   XX X  X",
-            "XOOX X       X XOOX",
-            "XXXX X XXrXX X XXXX",
-            "O      XbpoX      O",
-            "XXXX X XXXXX X XXXX",
-            "OOOX X       X XOOO",
-            "XXXX X XXXXX X XXXX",
-            "X        X        X",
-            "X XX XXX X XXX XX X",
-            "X  X     P     X  X",
-            "XX X X X   X X X XX",
-            "X    X   X   X    X",
-            "X XXX XX X X  XXX X",
-            "X        X        X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X    X     X   X  X",
+            "X    X     X   X  X",
+            "X    X     X   X  X",
+            "X    X      X X   X",
+            "X X  X      XPX   X",
+            "X  XX        X    X",
+            "Xo               bX",
             "XXXXXXXXXXXXXXXXXXX" 
         },
         {
             "XXXXXXXXXXXXXXXXXXX", // LEVEL 3
-            "X        X        X",
-            "X XX X X X XXX XX X",
-            "X                 X",
-            "X XX X   XXX X XX X",
-            "X    X       X    X",
-            "X  X XXXX   XX X  X",
-            "XOOX X       X XOOX",
-            "XXXX X XXrXX X XXXX",
-            "O      XbpoX      O",
-            "XXXX X XXXXX X XXXX",
-            "OOOX X       X XOOO",
-            "XXXX X XXXXX X XXXX",
-            "X        X        X",
-            "X XX XXX X XXX XX X",
-            "X  X     P     X  X",
-            "XX X X X   X X X XX",
-            "X    X   X   X    X",
-            "X XXX XX X X  XXX X",
-            "X        X        X",
-            "XXXXXXXXXXXXXXXXXXX" 
+            "XP    XOOOX       X",
+            "XXXXX XXXXX XXXXX X",
+            "XOOOX       XOOOX X",
+            "XXXXXXXXXXXXXXXXX X",
+            "X   X   X   X   X X",
+            "X X X X X X X X X X",
+            "X X   X   X   X   X",
+            "X XXXXXXXXXXXXXXXXX",
+            "X XXXpXOXXXXXoXOXXX",
+            "X XXXOXOX   XOXOXXX",
+            "X XXXOXOX   XOXOXXX",
+            "X         H      O#",
+            "XXXXXOXOX   XOXOXXX",
+            "XOOOXOXrX   XOXbXrX",
+            "XOOOXXXXXXXXXXXXXOX",
+            "XXXXX        XXXX X",
+            "@O     XXXXX      X",
+            "XXXXX  X H X  XXXXX",
+            "OOOOX         XOOOO",
+            "OOOOXXXXXXXXXXXOOOO" 
         },
         {
             "XXXXXXXXXXXXXXXXXXX", // LEVEL 4
-            "X        X        X",
-            "X XX X X X XXX XX X",
             "X                 X",
-            "X XX X   XXX X XX X",
-            "X    X       X    X",
-            "X  X XXXX   XX X  X",
-            "XOOX X       X XOOX",
-            "XXXX X XXrXX X XXXX",
-            "O      XbpoX      O",
-            "XXXX X XXXXX X XXXX",
-            "OOOX X       X XOOO",
-            "XXXX X XXXXX X XXXX",
-            "X        X        X",
-            "X XX XXX X XXX XX X",
-            "X  X     P     X  X",
-            "XX X X X   X X X XX",
-            "X    X   X   X    X",
-            "X XXX XX X X  XXX X",
-            "X        X        X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
+            "X                 X",
             "XXXXXXXXXXXXXXXXXXX" 
         },
     };
@@ -256,7 +262,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         wallImageG= new ImageIcon(getClass().getResource("./wallG.png")).getImage();
         wallImageW = new ImageIcon(getClass().getResource("./wallW.png")).getImage();
         currWallImage = wallImageB;
-
+        
+        healFoodImage = new ImageIcon(getClass().getResource("./cherry2.png")).getImage();
 
         blueGhostImage = new ImageIcon(getClass().getResource("./blueGhost.png")).getImage();
         orangeGhostImage = new ImageIcon(getClass().getResource("./orangeGhost.png")).getImage();
@@ -289,6 +296,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         walls = new HashSet<Block>();
         foods = new HashSet<Block>();
         ghosts = new HashSet<Block>();
+        heals = new HashSet<Block>();
 
         // Go through each 
         for (int r = 0; r < rowCount; r++) {
@@ -331,6 +339,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 }
                 else if (tileMapChar == 'P') { // Create player
                     pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
+                }
+                else if (tileMapChar == '@') {
+                    portalOne = new Block(null, x-tileSize-5, y, tileSize, tileSize);
+                }
+                else if (tileMapChar == '#') {
+                    portalTwo = new Block(null, x+tileSize+5, y, tileSize, tileSize);
+                }
+                else if (tileMapChar == 'H') {
+                    Block heal = new Block(healFoodImage, x+tileSize/3, y+tileSize/3, tileSize/2, tileSize/2);
+                    heals.add(heal);
                 }
                 else if (tileMapChar == ' ') { //place food
                     // draw a small rectangle in the center of the cell
@@ -381,8 +399,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
 
             // draw walls
             for (Block wall : walls) {
-                if (aroundPlayer(wall, pacman))
                 g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
+            }
+
+            for (Block heal : heals) {
+                if (lives < 2)
+                g.drawImage(heal.image, heal.x, heal.y, heal.width, heal.height, null);
             }
 
             // draw stats: number of lives, score, and highscore at the top of the screen 
@@ -394,14 +416,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         
     }
     
-    private boolean aroundPlayer(Block object, Block player){
-        int radius = 1;
-        boolean around = (object.x <= player.x+radius && object.x >= player.x-radius)
-        || (object.y <= player.y+radius && object.y >= player.y-radius);
-        System.out.println("AroundPlayer: " + String.valueOf(around) + "\n PacmanX = " + player.x + " PacmanY = " + player.y "\n ObjectX = ");
-        
-        return around;
-    }
 
     /**
      * Method to caclculate moves for all objects and their collisions
@@ -420,27 +434,43 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
         }
 
+        if (collision(portalOne, pacman)) {
+            pacman.x = portalTwo.x-tileSize-5;
+            pacman.y = portalTwo.y;
+        }
+        else if (collision(portalTwo, pacman)){
+            pacman.x = portalOne.x+tileSize+5;
+            pacman.y = portalOne.y;
+        }
 
         // check ghost collisions with player and their moves
         for (Block ghost : ghosts) { 
-            // if (collision(ghost, pacman)){
-            //     lives -= 1;
-            //     if (lives < 1) {
-            //         gameOver = true;
-            //         return;
-            //     }
-            //     resetPositions();
-            // }
+            if (collision(ghost, pacman)){
+                lives -= 1;
+                if (lives < 1) {
+                    gameOver = true;
+                    return;
+                }
+                resetPositions();
+            }
             if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D'){
                 ghost.updateDirection(directions[random.nextInt(2)]);
             }
             if (intersection(ghost)){
                 ghost.updateDirection(directions[random.nextInt(4)]);
             }
+            if (collision(portalOne, ghost)) {
+                ghost.x = portalTwo.x-tileSize;
+                ghost.y = portalTwo.y;
+            }
+            else if (collision(portalTwo, ghost)){
+                ghost.x = portalOne.x+tileSize;
+                ghost.y = portalOne.y;
+            }
             ghost.x += ghost.velocityX;
             ghost.y += ghost.velocityY;
             for (Block wall : walls) { 
-                if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth){
+                if (collision(ghost, wall) /*|| ghost.x <= 0 || ghost.x + ghost.width >= boardWidth*/){
                     ghost.x -= ghost.velocityX;
                     ghost.y -= ghost.velocityY;
                     char newDirection = directions[random.nextInt(4)];
@@ -457,6 +487,15 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
         }
         foods.remove(foodEaten);
+
+        Block healUsed = null;
+        for (Block heal : heals){
+            if (collision(pacman, heal)){
+                healUsed = heal;
+                lives += 1;
+            }
+        }
+        heals.remove(healUsed);
 
         // Switch rooms if there's no food left in previous one
         if (foods.isEmpty()) {
@@ -554,7 +593,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     public void saveHighScore(int score){
         if (score > highScore){
             try {
-                FileWriter writer = new FileWriter("highscore.txt", false);
+                FileWriter writer = new FileWriter("./highscore.txt", false);
                 writer.write(String.valueOf(score));
                 writer.close();
             } catch (IOException e) {
