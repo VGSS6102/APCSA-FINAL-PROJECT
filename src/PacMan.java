@@ -460,20 +460,20 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D'){
                 ghost.updateDirection(directions[random.nextInt(2)]);
             }
-            if (intersection(ghost) && room == 0 /*&& !followingPacman*/){
+            if (intersection(ghost) && room <= 1 /*&& !followingPacman*/){
                 if (random.nextInt(15) == 8)
                 ghost.updateDirection(directions[random.nextInt(4)]);
             }
             if (followingPacman){
                 ghost.speed = tileSize/8;
-                followedPacman(ghost);
+                followPacman(ghost);
             }
             if (collision(portalOne, ghost)) {
-                ghost.x = portalTwo.x-tileSize;
+                ghost.x = portalTwo.x-tileSize-5;
                 ghost.y = portalTwo.y;
             }
             else if (collision(portalTwo, ghost)){
-                ghost.x = portalOne.x+tileSize;
+                ghost.x = portalOne.x+tileSize+5;
                 ghost.y = portalOne.y;
             }
             ghost.x += ghost.velocityX;
@@ -523,7 +523,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
             
         }
-        else if (foods.size() <= (10/100)*amountOfFood){
+        else if (foods.size() <= (int)((10.0/100.0)*amountOfFood)){
             followingPacman = true;
         }
 
@@ -545,7 +545,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
 
     /**
      * Looks for 3 or 4 ways ghost can go
-     * @param ghost
+     * @param ghost Block class object
      * @return is there intersection or not
      */
     private boolean intersection(Block ghost){
@@ -572,26 +572,80 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         return (ways > 2);
     }
 
-    public boolean followedPacman(Block ghost){
-        char prevDirection = ghost.direction;
-        int prevDistance = distanceTo(ghost, pacman);
-        for (char direction : directions) {
-            ghost.updateDirection(direction);
-            if (distanceTo(ghost, pacman) < prevDistance){
-                break;
-            } else {
-                ghost.updateDirection(prevDirection);
+    /**
+     * Makes ghost to follow pacman through the map
+     * @param ghost Object that would follow pacman
+     */
+    public void followPacman(Block ghost){
+        // char prevDirection = ghost.direction;
+        // int prevDistance = distanceTo(ghost, pacman);
+
+        // for (char direction : directions) {
+        //     ghost.updateDirection(relativeDirection(ghost, pacman));
+        //     System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
+        //     if (distanceTo(ghost, pacman) < prevDistance){
+        //         break;
+        //     } 
+        //     else {
+        //         ghost.updateDirection(prevDirection);
                 
+        //     }
+        // }
+        // HashSet<Block>
+    }
+
+    private HashSet<Block> createPath(Block from, Block to){
+        HashSet<Block> map = new HashSet<Block>();
+        HashSet<Block> path = new HashSet<Block>();
+        for (Block food : foods){
+            map.add(food);
+        }
+        for (Block heal : heals){
+            map.add(heal);
+        }
+        
+        int neededDistance = 1;
+        for (Block object : map){
+            int distFrom = distanceTo(object, from);
+            int distTo = distanceTo(object, to);
+            int fromDistTo = distanceTo(from, to);
+            if (distTo == neededDistance && distFrom <= fromDistTo){
+                path.add(object);
+                neededDistance++;
             }
         }
 
-        return true;
+        return path;
     }
 
+    /**
+     * Returns distance between two objects
+     * @param a Block class object
+     * @param b Block class object
+     * @return int distance pixels
+     */
     int distanceTo(Block a, Block b){
         int distance = Math.abs((int) Math.sqrt(Math.pow((b.x - a.x),2)+ Math.pow((b.y - a.y), 2)));
-        return distance;
+        return distance/tileSize;
     }
+
+
+    char relativeDirection(Block from, Block to){
+        if (from.x < to.x){
+            return 'R';
+        }
+        else if (from.x > to.x){
+            return 'L';
+        }
+        
+        if (from.y < to.y){
+            return 'D';
+        }
+        else {
+            return 'U';
+        }
+    }
+
 
     /**
      * Reset positions of all moving object like player and ghosts
@@ -723,11 +777,20 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         }
         else if (e.getKeyCode() == KeyEvent.VK_G){
             room = (room+1) > tileMap.length-1 ? 0 : room+1;
+            followingPacman = false;
             loadMap();
             resetPositions();
         }
-        else if (e.getKeyCode() == KeyEvent.VK_E){
-            pacman.updateDirection(pacman.direction);
+        else if (e.getKeyCode() == KeyEvent.VK_F){
+            followingPacman = !followingPacman;
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_C){
+            Image prevImage = null;
+            for (Block obj : walls){
+                System.out.println(obj.image.equals(prevImage));
+                prevImage = obj.image;
+                 
+            }
         }
 
         if (pacman.direction == 'U'){
