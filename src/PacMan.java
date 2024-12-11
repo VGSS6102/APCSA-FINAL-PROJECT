@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
@@ -299,6 +300,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         foods = new HashSet<Block>();
         ghosts = new HashSet<Block>();
         heals = new HashSet<Block>();
+        
 
         // Go through each 
         for (int r = 0; r < rowCount; r++) {
@@ -577,45 +579,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @param ghost Object that would follow pacman
      */
     public void followPacman(Block ghost){
-        // char prevDirection = ghost.direction;
-        // int prevDistance = distanceTo(ghost, pacman);
+        char prevDirection = ghost.direction;
+        int prevDistance = distanceTo(ghost, pacman);
 
-        // for (char direction : directions) {
-        //     ghost.updateDirection(relativeDirection(ghost, pacman));
-        //     System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
-        //     if (distanceTo(ghost, pacman) < prevDistance){
-        //         break;
-        //     } 
-        //     else {
-        //         ghost.updateDirection(prevDirection);
-                
-        //     }
-        // }
-        // HashSet<Block>
-    }
-
-    private HashSet<Block> createPath(Block from, Block to){
-        HashSet<Block> map = new HashSet<Block>();
-        HashSet<Block> path = new HashSet<Block>();
-        for (Block food : foods){
-            map.add(food);
-        }
-        for (Block heal : heals){
-            map.add(heal);
-        }
-        
-        int neededDistance = 1;
-        for (Block object : map){
-            int distFrom = distanceTo(object, from);
-            int distTo = distanceTo(object, to);
-            int fromDistTo = distanceTo(from, to);
-            if (distTo == neededDistance && distFrom <= fromDistTo){
-                path.add(object);
-                neededDistance++;
+        for (char direction : directions) {
+            ghost.updateDirection(relativeDirection(ghost, pacman));
+            System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
+            if (distanceTo(ghost, pacman) < prevDistance){
+                break;
+            } 
+            else {
+                ghost.updateDirection(prevDirection);  
             }
         }
-
-        return path;
     }
 
     /**
@@ -629,7 +605,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         return distance/tileSize;
     }
 
-
+    /**
+     * Determines direction of one object towards another
+     * @param from the one that rotates
+     * @param to the one towards being rotated to
+     * @return char direction
+     */
     char relativeDirection(Block from, Block to){
         if (from.x < to.x){
             return 'R';
@@ -785,12 +766,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             followingPacman = !followingPacman;
         }
         else if (e.getKeyCode() == KeyEvent.VK_C){
-            Image prevImage = null;
-            for (Block obj : walls){
-                System.out.println(obj.image.equals(prevImage));
-                prevImage = obj.image;
-                 
-            }
         }
 
         if (pacman.direction == 'U'){
