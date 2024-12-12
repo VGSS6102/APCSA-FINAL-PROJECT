@@ -369,6 +369,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * Method responsible for updating the screen 
      * @param g Graphics class object
      */
+    @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         draw(g);
@@ -450,7 +451,6 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
 
         // check ghost collisions with player and their moves
         for (Block ghost : ghosts) { 
-            ghost.speed = tileSize/4;
             if (collision(ghost, pacman)){
                 lives -= 1;
                 if (lives < 1) {
@@ -469,7 +469,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             if (followingPacman){
                 ghost.speed = tileSize/8;
                 followPacman(ghost);
-            }
+            } else {ghost.speed = tileSize/4;}
             if (collision(portalOne, ghost)) {
                 ghost.x = portalTwo.x-tileSize-5;
                 ghost.y = portalTwo.y;
@@ -581,17 +581,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     public void followPacman(Block ghost){
         char prevDirection = ghost.direction;
         int prevDistance = distanceTo(ghost, pacman);
+        ghost.speed = tileSize/8;
 
-        for (char direction : directions) {
+
             ghost.updateDirection(relativeDirection(ghost, pacman));
             System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
             if (distanceTo(ghost, pacman) < prevDistance){
-                break;
-            } 
+                ghost.updateDirection(directions[random.nextInt(4)]);
+            }
+
             else {
                 ghost.updateDirection(prevDirection);  
             }
-        }
+        
     }
 
     /**
@@ -744,28 +746,36 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) {
-            pacman.updateDirection('U');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
-            pacman.updateDirection('D');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) {
-            pacman.updateDirection('L');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D) {
-            pacman.updateDirection('R');
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_G){
-            room = (room+1) > tileMap.length-1 ? 0 : room+1;
-            followingPacman = false;
-            loadMap();
-            resetPositions();
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_F){
-            followingPacman = !followingPacman;
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_C){
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+            case KeyEvent.VK_W:
+                pacman.updateDirection('U');
+                break;
+            case KeyEvent.VK_DOWN:
+            case KeyEvent.VK_S:
+                pacman.updateDirection('D');
+                break;
+            case KeyEvent.VK_LEFT:
+            case KeyEvent.VK_A:
+                pacman.updateDirection('L');
+                break;
+            case KeyEvent.VK_RIGHT:
+            case KeyEvent.VK_D:
+                pacman.updateDirection('R');
+                break;
+            case KeyEvent.VK_G:
+                room = (room+1) > tileMap.length-1 ? 0 : room+1;
+                followingPacman = false;
+                loadMap();
+                resetPositions();
+                break;
+            case KeyEvent.VK_F:
+                followingPacman = !followingPacman;
+                break;
+            case KeyEvent.VK_C:
+                break;
+            default:
+                break;
         }
 
         if (pacman.direction == 'U'){
