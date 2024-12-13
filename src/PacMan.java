@@ -13,8 +13,6 @@ import javax.swing.*;
  * @author Andrii Dubinskyi (ADDITIONS)
  * @author Kenny Yip Coding (BASE)
  * @see https://www.youtube.com/watch?v=lB_J-VNMVpE
- * 
- * 
  */
 public class PacMan extends JPanel implements ActionListener, KeyListener{
 
