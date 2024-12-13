@@ -3,7 +3,6 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
@@ -11,6 +10,11 @@ import javax.swing.*;
 
 /**
  * Game class
+ * @author Andrii Dubinskyi (ADDITIONS)
+ * @author Kenny Yip Coding (BASE)
+ * @see https://www.youtube.com/watch?v=lB_J-VNMVpE
+ * 
+ * 
  */
 public class PacMan extends JPanel implements ActionListener, KeyListener{
 
@@ -33,6 +37,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         int velocityY = 0;
         int speed = tileSize/4;
 
+        // Constructor for each block
         Block(Image image, int x, int y , int width, int height) {
             this.image = image;
             this.x = x;
@@ -302,7 +307,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         heals = new HashSet<Block>();
         
 
-        // Go through each 
+        // Go through each symbol of the tileMap
         for (int r = 0; r < rowCount; r++) {
             for (int c  = 0; c < columnCount; c++) {
                 //read rows
@@ -312,6 +317,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 char tileMapChar = row.charAt(c);
                 
                 //calculate coordinates of character
+                //it places each object to it's pixel coords, not their cell 
                 int x = c*tileSize;
                 int y = r*tileSize;
 
@@ -344,17 +350,17 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 else if (tileMapChar == 'P') { // Create player
                     pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
                 }
-                else if (tileMapChar == '@') {
+                else if (tileMapChar == '@') { // Create left portal
                     portalOne = new Block(null, x-tileSize-5, y, tileSize, tileSize);
                 }
-                else if (tileMapChar == '#') {
+                else if (tileMapChar == '#') { // Create right portal
                     portalTwo = new Block(null, x+tileSize+5, y, tileSize, tileSize);
                 }
-                else if (tileMapChar == 'H') {
+                else if (tileMapChar == 'H') { // Crate healing cherry
                     Block heal = new Block(healFoodImage, x+tileSize/3, y+tileSize/3, tileSize/2, tileSize/2);
                     heals.add(heal);
                 }
-                else if (tileMapChar == ' ') { //place food
+                else if (tileMapChar == ' ') { //place food on blank spaces
                     // draw a small rectangle in the center of the cell
                     Block food = new Block(null, x + 14, y + 14, 4, 4);
                     foods.add(food);
@@ -408,6 +414,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
             }
 
+            // draw healing cherries
             for (Block heal : heals) {
                 if (lives < 2)
                 g.drawImage(heal.image, heal.x, heal.y, heal.width, heal.height, null);
@@ -440,6 +447,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
         }
 
+        // Determine if player going through the portals
+        // then teleport them to another portal
         if (collision(portalOne, pacman)) {
             pacman.x = portalTwo.x-tileSize-5;
             pacman.y = portalTwo.y;
@@ -459,17 +468,22 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 }
                 resetPositions();
             }
+            // Resolve issue of ghosts being stuck in their starting room
             if (ghost.y == tileSize*9 && ghost.direction != 'U' && ghost.direction != 'D'){
                 ghost.updateDirection(directions[random.nextInt(2)]);
             }
+            // Check if ghost at intersection
             if (intersection(ghost) && room <= 1 /*&& !followingPacman*/){
                 if (random.nextInt(15) == 8)
                 ghost.updateDirection(directions[random.nextInt(4)]);
             }
-            if (followingPacman){
+            // Execute following algorithm when following flag is on
+            if (followingPacman && room != 2){
                 ghost.speed = tileSize/8;
                 followPacman(ghost);
             } else {ghost.speed = tileSize/4;}
+
+            // Teleport ghosts
             if (collision(portalOne, ghost)) {
                 ghost.x = portalTwo.x-tileSize-5;
                 ghost.y = portalTwo.y;
@@ -481,7 +495,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             ghost.x += ghost.velocityX;
             ghost.y += ghost.velocityY;
             for (Block wall : walls) { 
-                if (collision(ghost, wall) /*|| ghost.x <= 0 || ghost.x + ghost.width >= boardWidth*/){
+                if (collision(ghost, wall)){
                     ghost.x -= ghost.velocityX;
                     ghost.y -= ghost.velocityY;
                     char newDirection = directions[random.nextInt(4)];
@@ -489,6 +503,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
                 }
             }
         }
+
         // check food colisions with player
         Block foodEaten = null;
         for (Block food : foods) {
@@ -499,6 +514,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         }
         foods.remove(foodEaten);
 
+        // check heals colisions with player
         Block healUsed = null;
         for (Block heal : heals){
             if (collision(pacman, heal) && lives < 3){
@@ -525,6 +541,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
             
         }
+        // make ghosts follow player when there's 10% of all food left 
         else if (foods.size() <= (int)((10.0/100.0)*amountOfFood)){
             followingPacman = true;
         }
@@ -579,20 +596,23 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @param ghost Object that would follow pacman
      */
     public void followPacman(Block ghost){
+        // save stats before following pacman
         char prevDirection = ghost.direction;
-        int prevDistance = distanceTo(ghost, pacman);
+        int prevDistance = distanceTo(ghost, pacman)/tileSize;
         ghost.speed = tileSize/8;
 
+        // go towards pacman in the straight line
+        ghost.updateDirection(relativeDirection(ghost, pacman));
+        // System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
 
-            ghost.updateDirection(relativeDirection(ghost, pacman));
-            System.out.println("Distance From Ghost - To Pacman: " + distanceTo(ghost, pacman));
-            if (distanceTo(ghost, pacman) < prevDistance){
-                ghost.updateDirection(directions[random.nextInt(4)]);
-            }
+        // check if distance is changing while moving towards pacman
+        if (distanceTo(ghost, pacman)/tileSize > prevDistance){
+            ghost.updateDirection(directions[random.nextInt(4)]);
+        }
 
-            else {
-                ghost.updateDirection(prevDirection);  
-            }
+        else {
+            ghost.updateDirection(prevDirection);  
+        }
         
     }
 
@@ -604,7 +624,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      */
     int distanceTo(Block a, Block b){
         int distance = Math.abs((int) Math.sqrt(Math.pow((b.x - a.x),2)+ Math.pow((b.y - a.y), 2)));
-        return distance/tileSize;
+        return distance;
     }
 
     /**
@@ -614,6 +634,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @return char direction
      */
     char relativeDirection(Block from, Block to){
+
         if (from.x < to.x){
             return 'R';
         }
@@ -621,7 +642,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             return 'L';
         }
         
-        if (from.y < to.y){
+        else if (from.y < to.y){
             return 'D';
         }
         else {
@@ -652,12 +673,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @return highScore
      */
     public int getHighScore(){
-
+        // set high score as a last score, if theres something with a file
         int highScore = score;
         
+        // read text file containing highscore
         try {
-            // FileReader reader = new FileReader("highscore.txt");
-            // BufferedReader bufferedReader = new BufferedReader(reader);
             File myFile = new File("highscore.txt");
             Scanner myReader = new Scanner(myFile);
  
@@ -679,6 +699,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @param score current score
      */
     public void saveHighScore(int score){
+        // edit file with highscore if current score is bigger than the highscore last recorded
         if (score > highScore){
             try {
                 FileWriter writer = new FileWriter("highscore.txt", false);
@@ -696,11 +717,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
      * @param room index number of the room
      */
     public void displayGameOver(Graphics g, int score, int room) {
-        gameLoop.stop();
+        gameLoop.stop(); // stop game 
+
+        // setup font
         g.setFont(new Font("Arial", Font.BOLD, 40));
         g.setColor(Color.RED);
+
+        // display gameover text
         g.drawString("Game Over",boardWidth/3, boardHeight/2-50);
 
+        // save new higscore and display it below
         saveHighScore(score);
         g.drawString("Score: " + String.valueOf(score) + " High: " + String.valueOf(getHighScore()), boardWidth/5, boardHeight/2+25);
     }
@@ -732,6 +758,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     @Override
     public void keyReleased(KeyEvent e) {
         
+        // restart game on Enter Space or Escape when its game over
         if (gameOver) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER|| e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                 loadMap();
@@ -746,38 +773,49 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             }
         }
 
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_UP:
-            case KeyEvent.VK_W:
-                pacman.updateDirection('U');
-                break;
-            case KeyEvent.VK_DOWN:
-            case KeyEvent.VK_S:
-                pacman.updateDirection('D');
-                break;
-            case KeyEvent.VK_LEFT:
-            case KeyEvent.VK_A:
-                pacman.updateDirection('L');
-                break;
-            case KeyEvent.VK_RIGHT:
-            case KeyEvent.VK_D:
-                pacman.updateDirection('R');
-                break;
-            case KeyEvent.VK_G:
-                room = (room+1) > tileMap.length-1 ? 0 : room+1;
-                followingPacman = false;
-                loadMap();
-                resetPositions();
-                break;
-            case KeyEvent.VK_F:
-                followingPacman = !followingPacman;
-                break;
-            case KeyEvent.VK_C:
-                break;
-            default:
-                break;
+        // Record keypresses WASD and arrows to operate  pacman
+        if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) {
+            pacman.updateDirection('U');
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
+            pacman.updateDirection('D');
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A) {
+            pacman.updateDirection('L');
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D) {
+            pacman.updateDirection('R');
         }
 
+        /* Debug keybinds
+        1. Changes rooms on "G"
+        2. On/Off switch for following pacman
+        3. Increase health
+        4. Decrease health
+        */ 
+        else if (e.getKeyCode() == KeyEvent.VK_G){
+            room = (room+1) > tileMap.length-1 ? 0 : room+1;
+            followingPacman = false;
+            loadMap();
+            resetPositions();
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_F){
+            followingPacman = !followingPacman;
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_Y){
+            if (lives < 3)
+            lives++;
+
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_H){
+            if (lives > 1)
+            lives--;
+            else gameOver = true;
+            
+            
+        }
+
+        // Change texture of the player depending on  direction
         if (pacman.direction == 'U'){
             pacman.image = pacmanUpImage;
         }
