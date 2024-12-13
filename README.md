@@ -1,18 +1,15 @@
-## Getting Started
+# AP Computer Science A (JAVA) <br/> Final Project
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Represents a game of pacman written in Java
 
-## Folder Structure
+Base was written fully from the tutorial provided by the teacher
 
-The workspace contains two folders by default, where:
+What I did is just small additions and changes to the code
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+Implemented features:
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
-
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+- Game over screen
+- Moving across whole map and turning randomly at intersections
+- 3 more rooms with different layouts
+- Algorithm that follows pacman when theres 10% of food left on the map
+- Cherries are healing the player and appear when theres 1 lives left
