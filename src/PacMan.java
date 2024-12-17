@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.chrono.ThaiBuddhistChronology;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
@@ -147,7 +148,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     Random random = new Random(); 
     int score = 0; // score of current match
     int highScore = getHighScore(); // high score of all time
-    int lives = 1; // starting lives
+    int lives = 3; // starting lives
     boolean gameOver = false; // status flag determines if game is over
     // boolean blackOut = false; // status flag for lightswitch off (WIP)
     int room = 0; // starting room / current room 
@@ -421,7 +422,10 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
             // draw stats: number of lives, score, and highscore at the top of the screen 
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             g.setColor(Color.RED);
-            g.drawString("x" + String.valueOf(lives) + " Score: " + String.valueOf(score) + " H: " + String.valueOf(highScore), tileSize/2, tileSize/2);
+            String stats = "x" + String.valueOf(lives) + " Score: " + String.valueOf(score) + " H: " + String.valueOf(highScore);
+            if (gameLoop.isRunning() == false) stats += " PAUSED";
+            if (followingPacman) stats += " !HUNT!";
+            g.drawString(stats, tileSize/2, tileSize/2);
             
         }
         
@@ -746,7 +750,17 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
     public void keyTyped(KeyEvent e) {}
 
     @Override
-    public void keyPressed(KeyEvent e) {}
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_J){
+            int i = amountOfFood;
+            for (Block food : foods){
+                if (i <= (int)((90.0/100.0)*amountOfFood)) break;
+                foods.remove(food);
+                i--;
+            }
+            System.out.println("Removed " + i + " food");
+        }
+    }
 
 
     /**
@@ -759,14 +773,14 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         // restart game on Enter Space or Escape when its game over
         if (gameOver) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER|| e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                loadMap();
-                resetPositions();
                 lives = 3;
                 score = 0;
                 room = 0;
                 highScore = getHighScore();
                 gameOver = false;
                 followingPacman = false;
+                loadMap();
+                resetPositions();
                 gameLoop.start();
             }
         }
@@ -799,6 +813,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         }
         else if (e.getKeyCode() == KeyEvent.VK_F){
             followingPacman = !followingPacman;
+
         }
         else if (e.getKeyCode() == KeyEvent.VK_Y){
             if (lives < 3)
@@ -808,9 +823,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener{
         else if (e.getKeyCode() == KeyEvent.VK_H){
             if (lives > 1)
             lives--;
-            else gameOver = true;
-            
-            
+            else gameOver = true;  
+        }
+        else if (e.getKeyCode() == KeyEvent.VK_P){
+            if (gameLoop.isRunning()) { gameLoop.stop(); } 
+            else gameLoop.start();
         }
 
         // Change texture of the player depending on  direction
